@@ -26,7 +26,7 @@
         <module>vala-service-jsoup</module>
         <module>vala-service-map</module>
         <module>vala-service-websocket</module>
-        <module>vala-web-npims</module>
+        <module>vala-web-gwell</module>
     </modules>
 
     <dependencies>

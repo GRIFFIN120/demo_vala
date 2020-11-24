@@ -10,9 +10,9 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>com.vala</groupId>
-    <artifactId>vala-web-npims</artifactId>
+    <artifactId>vala-web-gwell</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>vala-web-npims</name>
+    <name>vala-web-gwell</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>
