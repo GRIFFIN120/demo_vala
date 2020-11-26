@@ -42,6 +42,10 @@ public class MenuController extends BaseController<MenuItem> {
             list.add(menuItem);
         }
 
+        list.sort((o1, o2)->{
+            return (int) (o2.getTimestamp().getTime()- o1.getTimestamp().getTime());
+        });
+
         List<MenuItem> menuItems = TreeUtils.treeBean(list);
 
 

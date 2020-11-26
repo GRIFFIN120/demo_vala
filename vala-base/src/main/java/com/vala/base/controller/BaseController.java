@@ -7,13 +7,16 @@ import com.vala.base.entity.FileColumn;
 import com.vala.base.entity.TreeEntity;
 import com.vala.base.service.BaseService;
 import com.vala.base.service.FastDfsService;
+import com.vala.base.utils.ExcelUtils;
 import com.vala.commons.bean.KV;
 import com.vala.commons.bean.ResponseResult;
 import com.vala.commons.util.BeanUtils;
 import com.vala.commons.util.Constants;
 import com.vala.base.utils.TreeUtils;
 import org.apache.commons.collections.ArrayStack;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -28,7 +31,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -50,8 +55,55 @@ public class BaseController<T extends BaseEntity> extends BaseControllerWraper<T
     }
 
 
-    @RequestMapping("/input/{type}")
-    public ResponseResult input(@PathVariable String type,@RequestPart(value = "file") MultipartFile file) {
+    @RequestMapping(value="/input/{type}",produces = "application/json;charset=UTF-8")
+    public ResponseResult input(@PathVariable String type,@RequestPart(value = "file") MultipartFile file) throws Exception {
+
+
+//        String[] nameAndExtension = ExcelUtils.getNameAndExtension(file.getOriginalFilename());
+//        Workbook workBook = ExcelUtils.getWorkBook(file.getInputStream(), nameAndExtension[1]);
+
+        List<T> list = new ArrayList<>();
+        List<Object[]> read = ExcelUtils.read(file);
+        Object[] titles = read.get(0);
+        List<Field> fields = new ArrayList<>();
+        for (Object title : titles) {
+            Field field = this.domain.getField((String) title);
+            field.setAccessible(true);
+            fields.add(field);
+        }
+
+
+
+        for (int i = 1; i < read.size(); i++) {
+            Object[] objects =  read.get(i);
+            T bean = this.baseService.newInstance();
+
+            System.out.println(ArrayUtils.toString(objects));
+
+            for (int j = 0; j < objects.length; j++) {
+                Field field = fields.get(j);
+                Object val = objects[j];
+                if (val==null) continue;
+
+
+
+                Class<?> type1 = field.getType();
+                System.out.println(field.getName()+":"+type1+"="+val);
+                if(Integer.class.equals(type1)){
+                    Double value = (Double) val;
+                    val =  value.intValue();
+                }else if(String.class.equals(type1)){
+                    val =  val.toString();
+                }
+                field.set(bean,val);
+            }
+            list.add(bean);
+        }
+
+
+        this.baseService.saveOrUpdate(list);
+
+
 
         return new ResponseResult("上传成功");
     }
@@ -141,6 +193,7 @@ public class BaseController<T extends BaseEntity> extends BaseControllerWraper<T
             KV k = new KV();
             k.setId(t.getId());
             k.setName(t.getName());
+            k.setCode(t.getCode());
             list.add(k);
         }
         return new ResponseResult(list);
@@ -316,7 +369,10 @@ public class BaseController<T extends BaseEntity> extends BaseControllerWraper<T
             if(id==0) continue;
 
             T bean  = baseService.get(id);
-            this.fastDfsService.deleteBeanFile(bean);
+            if(bean!=null){
+                this.fastDfsService.deleteBeanFile(bean);
+            }
+
             boolean flag = this.baseService.delete(bean);
             if(flag) count++;
         }
